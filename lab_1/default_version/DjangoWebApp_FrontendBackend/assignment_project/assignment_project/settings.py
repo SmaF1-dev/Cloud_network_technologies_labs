@@ -28,10 +28,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
-if DEBUG:
-    ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
-else:
-    ALLOWED_HOSTS = ["13.50.208.98"]
+ALLOWED_HOSTS = ["*"]
+
 
 
 # Application definition
