@@ -13,7 +13,12 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     strictPort: true,
-    allowedHosts: ['*'], // разрешаем любые хосты,
+    allowedHosts: [
+      'project1.local',
+      'vite.frontend',
+      'fastapi.frontend',
+      'localhost',
+    ],
     hmr: {
       protocol: 'ws',
       host: 'localhost',
