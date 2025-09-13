@@ -1,0 +1,92 @@
+name: Django CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: hacer123
+          MYSQL_DATABASE: sakila
+          MYSQL_USER: hacer
+          MYSQL_PASSWORD: 123hacer
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -phacer123"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      MYSQL_ROOT_PASSWORD: hacer123
+      MYSQL_DATABASE: sakila
+      MYSQL_USER: hacer
+      MYSQL_PASSWORD: 123hacer
+      MYSQL_HOST: 127.0.0.1
+      SECRET_KEY: hello
+      DEBUG: False
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Wait for MySQL  to be ready
+      run: |
+        sudo apt-get install -y mysql-client
+        until mysqladmin ping -h127.0.0.1 -uroot -phacer123; do
+          echo "Waiting for MySQL to start..."
+          sleep 3
+        done
+    - name: Grant full permissions to hacer@'%'
+      run: |
+        mysql -h127.0.0.1 -uroot -phacer123 -e "GRANT ALL PRIVILEGES ON *.* TO 'hacer'@'%' WITH GRANT OPTION;"
+        mysql -h127.0.0.1 -uroot -phacer123 -e "FLUSH PRIVILEGES;"
+    
+    - name: Load database schema into sakila and test_sakila
+      run: |
+        # Creating test_sakila manually — Django won't populate it with unmanaged models
+        mysql -h127.0.0.1 -uroot -phacer123 -e "CREATE DATABASE IF NOT EXISTS test_sakila;"
+
+        # Loading schema into both DBs
+        mysql -h127.0.0.1 -uroot -phacer123 sakila < sql_files/01_sakila-schema.sql
+        mysql -h127.0.0.1 -uroot -phacer123 sakila < sql_files/02_sakila-data.sql
+
+        mysql -h127.0.0.1 -uroot -phacer123 test_sakila < sql_files/01_sakila-schema.sql
+        mysql -h127.0.0.1 -uroot -phacer123 test_sakila < sql_files/02_sakila-data.sql
+
+    - name: Run Django tests
+      run: |
+        cd assignment_project
+        python manage.py test --keepdb
+
+    - name: Docker build test
+      run: docker build -t assignment-app .
+
+    - name: Docker Compose up
+      run: |
+        docker compose up -d --build
+        sleep 10
+        docker compose ps
+
+    - name: Docker Compose down
+      if: always()
+      run: docker compose down

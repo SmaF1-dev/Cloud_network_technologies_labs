@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Main Page</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 75vh; /* Full viewport height */
+            background-color: #f0f0f0;
+            flex-direction: column;
+        }
+
+        .header {
+            margin-bottom: 40px; 
+        }
+
+        .buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 20px; /* Space between buttons */
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            color: white;
+        }
+
+        /* Blue button */
+        .btn-blue {
+            background-color: #007bff;
+        }
+
+        .btn-blue:hover {
+            background-color: #0056b3;
+        }
+
+        /* Green button */
+        .btn-orange {
+            background-color: #28a745;
+        }
+
+        .btn-orange:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Welcome to the Main Page</h1>
+    </div>
+    <div class="buttons">
+        <button class="btn-blue" onclick="window.location.href='/users/user/'">Go to Users Page</button>
+        <button class="btn-orange" onclick="window.location.href='/films/charts/'">Go to Films Page</button>
+    </div>
+</body>
+</html>

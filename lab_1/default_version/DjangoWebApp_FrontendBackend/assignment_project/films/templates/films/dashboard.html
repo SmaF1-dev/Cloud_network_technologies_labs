@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Films Dashboard</title>
+    <!-- Load external libraries for charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Main Chart.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script> <!-- Plugin for adding labels to charts -->
+    <style>
+        /* General page styling */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+        }
+        /* Container for the dashboard charts */
+        .container {
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+            background: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        h1 {
+            text-align: center;
+        }
+        
+        h3 {
+            text-align: center;
+        }
+        /* Layout for charts */
+        .chart-wrapper {
+            display: flex;
+            justify-content: space-between;
+            gap: 1%;
+            flex-wrap: nowrap; /* Adjust layout for smaller screens */
+        }
+        .chart-container {
+            width: 32%; /* Adjust width to fit 3 charts in a row */
+            margin-bottom: 20px;
+        }
+        /* Style for individual charts */
+        canvas {
+            width: 100%;
+            height: auto;
+        }
+        /* Modal Styling for enlarged charts */
+        #chartModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8); /* Semi-transparent background */
+            justify-content: center;
+            align-items: center;
+            z-index: 1000; /* Ensures the modal is on top */
+        }
+        #chartModal > div {
+            position: relative;
+            width: 80%;
+            height: 80%;
+            background: white;
+            border-radius: 8px;
+        }
+        #chartModal button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+        /* Back button styling */
+        .btn-back {
+            padding: 10px 20px;
+            font-size: 16px;
+            font-family: Arial, sans-serif;
+            background-color: #28a745; 
+            color: white;
+            text-align: center;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .btn-back:hover {
+            background-color: #218838; 
+        }
+        .btn-back-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0; 
+        }
+    </style>
+</head>
+<body>
+    <!-- Back to the main page button -->
+    <div class="btn-back-container">
+        <button class="btn-back" onclick="window.location.href='/'">Back to Main Page</button>
+    </div>
+    <!-- Main container for the dashboard -->
+    <div class="container">
+        <h1>Films</h1>
+        <!-- Chart wrapper ro organize charts -->
+        <div class="chart-wrapper">
+            <!-- Bar Chart -->
+            <div class="chart-container">
+                <h3>Top 10 Most Rented Films by Rentals and Revenue</h3>
+                <canvas id="barChart" onclick="openModal('bar')"></canvas>
+            </div>
+
+            <!-- Pie Chart -->
+            <div class="chart-container">
+                <h3>Top 10 Films by Revenue Contribution</h3>
+                <canvas id="pieChart" onclick="openModal('pie')"></canvas>
+            </div>
+
+            <!-- Line Chart -->
+            <div class="chart-container">
+                <h3>Monthly Revenue</h3>
+                <canvas id="lineChart" onclick="openModal('line')"></canvas>
+            </div>
+        </div>
+        <div class="chart-wrapper">
+            <!-- Clustered Bar Chart -->
+            <div class="chart-container">
+                <h3>Total Films by Language and Category</h3>
+                <canvas id="clusteredBarChart" onclick="openModal('clusteredBar')"></canvas>
+            </div>
+
+            <!-- Donut Chart -->
+            <div class="chart-container">
+                <h3>Unique Customer Preferences by Category</h3>
+                <canvas id="donutChart" onclick="openModal('donut')"></canvas>
+            </div>
+
+            <!-- Scatter Plot -->
+            <div class="chart-container">
+                <h3>Revenue vs. Rentals by Category</h3>
+                <canvas id="scatterPlot" onclick="openModal('scatter')"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for enlarged charts -->
+    <div id="chartModal">
+        <div>
+            <canvas id="enlargedChart"></canvas> <!-- Placeholder for enlarged charts -->
+            <button onclick="closeModal()">Close</button> <!-- Button to close the modal -->
+        </div>
+    </div>
+
+    <!-- JavaScript to generate charts -->
+    <script>
+        // Bar chart configuration
+        const barChartData = {{ bar_chart_data|safe }};
+        const barChartConfig = {
+            type: 'bar', // Bar chart type
+            data: {
+                labels: barChartData.titles, // Film titles
+                datasets: [
+                    {
+                        label: 'Rental Count', // Bar for rental count
+                        data: barChartData.rental_counts, // Data for rental counts
+                        backgroundColor: 'rgba(54, 162, 235, 0.7)', // Blue bar color
+                        borderColor: 'rgba(54, 162, 235, 1)', // Blue border color
+                        borderWidth: 1,
+                    },
+                    {
+                        label: 'Total Revenue ($)', // Bar for total revenue
+                        data: barChartData.total_revenues, // Data for total revenues
+                        backgroundColor: 'rgba(255, 99, 132, 0.7)', // Red bar color
+                        borderColor: 'rgba(255, 99, 132, 1)', // Red border color
+                        borderWidth: 1,
+                    },
+                ],
+            },
+            options: {
+                responsive: true, // Adjusts to the screen size
+                plugins: {
+                    tooltip: {
+                        mode: 'index', // Shows tooltip for all datasets at the same x-axis value.
+                        intersect: false, // Allows tooltips to appear even when hovering between bars
+                    },
+                    legend: {
+                        position: 'top', // Position of the legend
+                        align: 'end',
+                        labels: {
+                            boxWidth: 5,
+                            boxHeight: 5,
+                        },
+                    },
+                },
+                scales: {
+                    x: {
+                        stacked: true, // Stack bars for rental counts and total revenue
+                        title: {
+                            display: true,
+                            text: 'Film Titles', // X-axis title
+                        },
+                    },
+                    y: {
+                        stacked: true,
+                        title: {
+                            display: true,
+                            text: 'Rental Count / Total Revenue', // Y-axis title
+                        },
+                    },
+                },
+            },
+        };
+
+        // Render the bar chart
+        const barCtx = document.getElementById('barChart').getContext('2d');
+        new Chart(barCtx, barChartConfig);
+
+        // Pie chart configuration
+        const pieChartData = {{ pie_chart_data|safe }};
+        const pieChartConfig = {
+            type: 'pie', // Pie chart type
+            data: {
+                labels: pieChartData.titles, // Film titles 
+                datasets: [
+                    {
+                        label: 'Revenue Share',
+                        data: pieChartData.total_revenues,
+                        backgroundColor: [
+                            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
+                        ], // Different colors for each slice
+                        borderWidth: 1,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                const percentage = pieChartData.percentages[context.dataIndex];
+                                return `${context.label}: $${context.raw} (${percentage})`;
+                            },
+                        },
+                    },
+                    // to show percentages on the pie chart slices
+                    datalabels: {
+                        color: '#fff',
+                        formatter: function (value, context) {
+                            const percentage = pieChartData.percentages[context.dataIndex];
+                            return percentage;
+                        },
+                        font: {
+                            weight: 'bold',
+                        },
+                    },
+                },
+            },
+            plugins: [ChartDataLabels], // Enable the ChartDataLabels plugin for showing datalabels
+        };
+
+        // Render the pie chart
+        const pieCtx = document.getElementById('pieChart').getContext('2d');
+        new Chart(pieCtx, pieChartConfig);
+
+        // Line chart configuration
+        const lineChartData = {{ line_chart_data|safe }};
+        const lineChartConfig = {
+            type: 'line', // Line chart type
+            data: {
+                labels: lineChartData.months, // Months as x-axis labels
+                datasets: [
+                    {
+                        label: 'Monthly Revenue ($)',
+                        data: lineChartData.total_revenues,
+                        borderColor: 'rgba(75, 192, 192, 1)', // Line color
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)', // Fill color under the line
+                        borderWidth: 2,
+                        tension: 0.4, // Smooth line curve
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top', // Position of the legend
+                    },
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month', // X-axis title
+                        },
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Total Revenue ($)', // Y-axis title
+                        },
+                    },
+                },
+            },
+        };
+
+        // Render the line chart
+        const lineCtx = document.getElementById('lineChart').getContext('2d');
+        new Chart(lineCtx, lineChartConfig);
+
+        // Clustered bar chart configuration
+        const clusteredBarChartData = {{ clustered_bar_chart_data|safe }};
+        const clusteredBarChartConfig = {
+            type: 'bar',
+            data: {
+                labels: clusteredBarChartData.categories, // Film categories as labels
+                datasets: clusteredBarChartData.languages.map((language, index) => ({
+                    label: language, // Each dataset represents a language
+                    data: clusteredBarChartData.data.map(categoryData => categoryData[index]), // Film counts for each language
+                    backgroundColor: `rgba(${index * 50}, ${100 + index * 30}, ${200 - index * 20}, 0.7)`, // Dynamic background color
+                    borderColor: `rgba(${index * 50}, ${100 + index * 30}, ${200 - index * 20}, 1)`, // Dynamic border color
+                    borderWidth: 1,
+                })),
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                },
+                scales: {
+                    x: {
+                        stacked: false,
+                        title: {
+                            display: true,
+                            text: 'Film Categories', // X-axis title
+                        },
+                    },
+                    y: {
+                        stacked: false,
+                        title: {
+                            display: true,
+                            text: 'Number of Films', // Y-axis title
+                        },
+                    },
+                },
+            },
+        };
+
+        // Render the clustered bar chart
+        const clusteredBarCtx = document.getElementById('clusteredBarChart').getContext('2d');
+        new Chart(clusteredBarCtx, clusteredBarChartConfig);
+
+        // Donut chart configuration
+        const donutChartData = {{ donut_chart_data|safe }};
+        const donutChartConfig = {
+            type: 'doughnut', // Donut chart type
+            data: {
+                labels: donutChartData.categories, // Film categories
+                datasets: [
+                    {
+                        label: 'Customer Preferences (%)',
+                        data: donutChartData.customer_counts, // Number of unique customers
+                        backgroundColor: [
+                            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40',
+                        ], // Colors for slices
+                        hoverOffset: 4,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                const percentage = donutChartData.percentages[context.dataIndex];
+                                return `${context.label}: ${context.raw} customers (${percentage}%)`;
+                            },
+                        },
+                    },
+                    // to show percentages on the donut chart slices
+                    datalabels: {
+                        color: '#fff',
+                        formatter: function (value, context) {
+                            const percentage = donutChartData.percentages[context.dataIndex];
+                            return `${percentage}%`; 
+                        },
+                        font: {
+                            weight: 'bold',
+                        },
+                    },
+                },
+            },
+            plugins:[ChartDataLabels], // Enable the ChartDataLabels plugin for showing datalabels
+        };
+
+        // Render the donut chart
+        const donutCtx = document.getElementById('donutChart').getContext('2d');
+        new Chart(donutCtx, donutChartConfig);
+
+        // Scatter plot configuration
+        const scatterPlotData = {{ scatter_plot_data|safe }};
+        const scatterPlotConfig = {
+            type: 'scatter', // Scatter plot type
+            data: {
+                datasets: [
+                    {
+                        label: 'Categories',
+                        data: scatterPlotData.categories.map((category, index) => ({
+                            x: scatterPlotData.rental_counts[index], // Number of rentals
+                            y: scatterPlotData.total_revenues[index], // Total revenue
+                            avgRevenue: scatterPlotData.avg_revenue_per_rentals[index], // Average revenue per rental
+                            category: category, // Category name for tooltips
+                        })),
+                        backgroundColor: 'rgba(75, 192, 192, 0.7)', // Point color
+                        borderColor: 'rgba(75, 192, 192, 1)', // Border color
+                        borderWidth: 1,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false, // Hide legend for simplicity
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                const data = context.raw;
+                                return `${data.category}: Rentals: ${data.x}, Revenue: $${data.y}, Avg Revenue/Rental: $${data.avgRevenue}`;
+                            },
+                        },
+                    },
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Number of Rentals', // X-axis title
+                        },
+                        beginAtZero: true,
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Total Revenue ($)', // Y-axis title
+                        },
+                        beginAtZero: true,
+                    },
+                },
+            },
+        };
+
+        // Render the scatter plot 
+        const scatterCtx = document.getElementById('scatterPlot').getContext('2d');
+        new Chart(scatterCtx, scatterPlotConfig);
+
+        // Modal functionality for displaying enlarged charts.
+        let modalChart; // Holds the current modal chart instance.
+        function openModal(chartType) {
+            const modal = document.getElementById('chartModal');
+            modal.style.display = 'flex';  // Show the modal
+
+            const ctx = document.getElementById('enlargedChart').getContext('2d');
+
+            // Destroy existing chart instance if it exists
+            if (modalChart) {
+                modalChart.destroy();
+            }
+
+            // Initialize new chart based on the chart type
+            if (chartType === 'bar') {
+                modalChart = new Chart(ctx, barChartConfig);
+            } else if (chartType === 'pie') {
+                modalChart = new Chart(ctx, pieChartConfig);
+            } else if (chartType === 'line') {
+                modalChart = new Chart(ctx, lineChartConfig);
+            } else if (chartType === 'clusteredBar') {
+                modalChart = new Chart(ctx, clusteredBarChartConfig);
+            } else if (chartType === 'donut') {
+                modalChart = new Chart(ctx, donutChartConfig);
+            } else if (chartType === 'scatter') {
+                modalChart = new Chart(ctx, scatterPlotConfig);
+            } 
+        }
+
+        // Close the modal
+        function closeModal() {
+            const modal = document.getElementById('chartModal');
+            modal.style.display = 'none'; // Hide the modal
+
+            // Destroy the modal chart to reset state
+            if (modalChart) {
+                modalChart.destroy();
+                modalChart = null;
+            }
+        }
+    </script>
+</body>
+</html>

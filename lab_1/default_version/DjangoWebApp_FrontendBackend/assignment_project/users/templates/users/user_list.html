@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Drag and Drop Users</title>
+    <!-- Load external Javascript and CSS for drag-and-drop functionality -->
+    {% load static %}
+    <script src="{% static 'dragula.min.js' %}"></script> <!-- Drag-and-drop library -->
+    <link rel="stylesheet" href="{% static 'dragula.min.css' %}"> <!-- Drag-and-drop styling -->
+    <style>
+        /* General styling for the page and drag-and-drop containers */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 50px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start; /* Align containers at the same vertical level */
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .drag-container {
+            display: flex;
+            flex-direction: column;
+            width: 45%;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+            padding: 10px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            height: 550px;  /* Fixed height for scrollable area */
+            overflow-y: auto;
+        }
+        .drag-container h3 {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        /* Style for draggable user items */
+        .drag-container div {
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f3f3f3;
+            cursor: grab;
+        }
+        .list_div div:hover {
+            background-color: #f39c12; /* Highlight user items on hover */
+        }
+        .btn-back {
+            padding: 10px 20px;
+            font-size: 16px;
+            font-family: Arial, sans-serif;
+            background-color: #007bff;
+            color: white;
+            text-align: center;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .btn-back:hover {
+            background-color: #0056b3;
+        }
+        .btn-back-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0; 
+        }
+        .search-container {
+            text-align: center;
+            margin-top: 10px;
+        }
+        .search-container input {
+            width: 50%; 
+            padding: 12px 20px; 
+            font-size: 17px; 
+            border-radius: 5px; 
+            border: 1px solid #ccc; 
+            box-sizing: border-box; 
+            }
+    </style>
+</head>
+<body>
+    <!-- Back to the main page button -->
+    <div class="btn-back-container">
+        <button class="btn-back" onclick="window.location.href='/'">Back to Main Page</button>
+    </div>
+    <!-- Search field for the users -->
+    <div class="search-container">
+        <input type="text" id="search-text" placeholder="Search by name or surname" oninput="debounceFetchUsers()" />
+    </div>
+    <!-- Drag-and-drop containers for active and non-active users-->
+    <div class="container">
+        <div id="active-users" class="drag-container">
+            <h3>Active Users</h3>
+            <div id="active-list" class="list_div"></div>
+        </div>
+        <div id="inactive-users" class="drag-container">
+            <h3>Non-Active Users</h3>
+            <div id="inactive-list" class="list_div"></div>
+        </div>
+    </div>
+    <script>
+        let drake = null; // Variable to store the Dragula instance
+
+        /**
+         * Ensures a function runs only after waiting for a pause in repeated actions,
+         * used specifically to reduce unnecessary API calls when typing in the search bar for the fetchUsers function.
+         *
+         * @param {Function} func - The function to delay until the user stops triggering it rapidly.
+         * @param {number} delay - The waiting time (in milliseconds) after the last action before running the function.
+         * @returns {Function} A new version of the function that waits before running.
+         */
+        function debounce(func, delay){
+            let timeoutId;
+            return function(...args){
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => func.apply(this, args), delay);
+            };
+        }
+        
+        // Debounced version of fetchUsers for optimized search
+        const debounceFetchUsers = debounce(fetchUsers, 300); 
+
+        /**
+         * Fetches users from the API and updates the active/inactive lists.
+         * It retrieves user data, applies search filtering if a query is entered,
+         * dynamically populates the drag-and-drop containers, and initializes Dragula.
+         */
+        function fetchUsers() {
+
+            // Get the search term entered by the user and trim any extra spaces
+            const searchTerm = document.getElementById('search-text').value.trim();
+            // Construct the API URL, adding a search parameter if a search term is provided
+            const url = searchTerm ? `/api/users/?search=${searchTerm}` : '/api/users/';
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    renderUsers(data.active_users, 'active-list');      // Render active users
+                    renderUsers(data.inactive_users, 'inactive-list');  // Render inactive users
+                    initializeDragula();                                // Initialize drag-and-drop
+                })
+                .catch(error => console.error('Error fetching user data:', error));
+        }
+
+        /**
+         * Renders the list of users into the specified container.
+         * @param {Array} users - Array of user objects.
+         * @param {string} containerId - The ID of the container to populate.
+         */
+        function renderUsers(users, containerId){
+            const container = document.getElementById(containerId);
+            // Clear existing user list
+            container.innerHTML = '';
+            // Populate users to the container
+            users.forEach(user => {
+                const div = document.createElement('div');
+                div.dataset.id = user.id;
+                div.dataset.type = user.type;
+                div.textContent = `${user.first_name} ${user.last_name} (${user.type})`;
+                container.appendChild(div);
+            });
+        }
+
+        /**
+         * Initializes Dragula for drag-and-drop functionality.
+         * Destroys any existing Dragula instance before initializing a new one.
+         */
+        function initializeDragula() {
+            if (drake) {
+                drake.destroy(); // Destroy previous instance
+            }
+
+            // Initialize drag-and-drop functionality using Dragula.
+            drake = dragula([
+                document.getElementById('active-list'), 
+                document.getElementById('inactive-list')
+            ]);
+
+            // Handle drop events to update user status on the backend.
+            drake.on('drop', (el, target) => {
+                updateUserStatus(el.dataset.id, el.dataset.type, target.id === 'active-list');
+            });
+        }
+
+        /**
+         * Updates the user's active status in the backend.
+         * Sends a PATCH request to update the user's status based on their new location.
+         * @param {string} userId - The ID of the user.
+         * @param {string} userType - The type of the user.
+         * @param {boolean} newStatus - Whether the user is active.
+         */
+        function updateUserStatus(userId, userType, newStatus){
+            fetch('/api/status/', {
+                method: 'PATCH',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    id: userId,
+                    type: userType,
+                    active: newStatus,
+                }),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    console.error('Failed to update user status');
+                }
+            })
+            .catch(error => console.error('Error updating user status:', error));
+        }
+        
+        // Fetch users as soon as the HTML content is fully loaded (before images or stylesheets are fully loaded)
+        document.addEventListener('DOMContentLoaded', fetchUsers);
+    </script>
+</body>
+</html>
