@@ -15,6 +15,7 @@ export default defineConfig({
     strictPort: true,
     allowedHosts: [
       'project1.local',
+      'project1_frontend',
       'vite.frontend',
       'fastapi.frontend',
       'localhost',
