@@ -1,0 +1,19 @@
+version: "3.9"
+services:
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../Boilerplate-FastAPI-Vue3-Vite-Postgres/backend/static:/var/www/project1_static:ro
+      - ../DjangoWebApp_FrontendBackend/static:/var/www/project2_static:ro
+      - ./certs:/etc/nginx/certs:ro
+    networks:
+      - shared_proxy_net
+
+networks:
+  shared_proxy_net:
+    external: true

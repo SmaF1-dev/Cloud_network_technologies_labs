@@ -1,0 +1,20 @@
+[req]
+distinguished_name = tanyaweloveu
+req_extensions = v3_req
+prompt = no
+
+[tanyaweloveu]
+C = ru
+ST = Ohio
+L = Spb
+O = Asmorr Inc.
+CN = ArtemT
+emailAddress = donotcare@gmail.com
+
+[v3_req]
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = project1.local
+DNS.2 = project2.local
+DNS.3 = localhost

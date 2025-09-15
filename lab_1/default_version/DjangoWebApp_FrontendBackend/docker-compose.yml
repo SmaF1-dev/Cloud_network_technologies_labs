@@ -1,0 +1,44 @@
+version: '3.9'
+volumes:
+  db_data:
+services:
+  db:
+    image: mysql:8.0
+    env_file:
+      - .env
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./sql_files:/docker-entrypoint-initdb.d
+    healthcheck:
+     test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root --password=$MYSQL_ROOT_PASSWORD || exit 1"]
+     interval: 10s
+     timeout: 5s
+     retries: 5
+    networks:
+      shared_proxy_net:
+        aliases:
+          - project2_db
+
+  web:
+    build: .
+    command: >
+      sh -c "sleep 10 && python assignment_project/manage.py runserver 0.0.0.0:8000"
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      shared_proxy_net:
+        aliases:
+          - project2_web
+
+networks:
+  shared_proxy_net:
+    external: true
