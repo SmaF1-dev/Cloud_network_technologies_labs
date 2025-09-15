@@ -328,6 +328,7 @@ ports:
 Чтобы это исправить, необходимо вручную добавить созданный
 ранее сертификат в хранилище доверенных центров сертификации на Windows. Для этого переходим в Microsoft Management
 Console для управления сертификатами и добавляем наш:
+
 ![add_cert.png](images/add_cert.png)
 ![add_cert_2.png](images/add_cert_2.png)
 ![added_cert.png](images/added_cert.png)
