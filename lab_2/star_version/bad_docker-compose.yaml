@@ -1,0 +1,35 @@
+version: '3.8'
+services:
+  web:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    environment:
+      - DEBUG=true
+    networks:
+      - default_network
+
+  db:
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=password
+    networks:
+      - default_network
+
+  app:
+    image:  python:latest
+    volumes:
+      - .:/app
+    command: python /app/app.py 
+    depends_on:
+      - db
+    networks:
+      - default_network 
+
+networks:
+  default_network:
+    driver: bridge
